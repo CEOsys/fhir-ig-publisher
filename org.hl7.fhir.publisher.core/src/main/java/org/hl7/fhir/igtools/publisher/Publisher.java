@@ -4080,6 +4080,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     res.add("EventDefinition");
     res.add("Evidence");
     res.add("EvidenceVariable");
+    res.add("EvidenceReport");
     res.add("ExampleScenario");
     res.add("GraphDefinition");
     res.add("ImplementationGuide");
@@ -4706,7 +4707,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
 
             if (!bc.hasDate()) {
               altered = true;
-              bc.setDateElement(new DateTimeType(execTime));
+              try {
+                bc.setDateElement(new DateTimeType(execTime));
+              } catch (Error e) {
+                // No date element in resource (happening in EvidenceReport 5.0.0-snapshot
+              }
             }
             if (!bc.hasStatus()) {
               altered = true;
@@ -5692,7 +5697,12 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
           if (uc != null && !u.equals(uc)) {
             map.path(uc, igpkp.getLinkFor(r, true));
           }
-          String v = ((CanonicalResource) r.getResource()).getVersion();
+          String v;
+          try {
+            v = ((CanonicalResource) r.getResource()).getVersion();
+          } catch(Error err) {
+            v = null;
+          }
           if (v != null) {
             map.path(uc + "|" + v, v + "/" + igpkp.getLinkFor(r, true));
           }
@@ -6428,10 +6438,18 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
         h.an(type);
         h.tx(type);
       }
+
+      String version;
+      try {
+        version = cr.getVersion();
+      } catch(Error err) {
+        version = "";
+      }
+
       tr = tbl.tr();
       tr.td().ah(cr.getUserString("path")).tx(cr.getUrl());
       tr.td().tx(cr.getId());
-      tr.td().tx(cr.getVersion());
+      tr.td().tx(version);
       tr.td().tx(bo.toString());
       tr.td().tx(bu.toString());      
     }
