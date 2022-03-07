@@ -1913,7 +1913,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
       return new TypeParserR14();
     } else if (VersionUtilities.isR2Ver(ver)) {
       return new TypeParserR2();
-    } else if (ver.equals(Constants.VERSION) || VersionUtilities.isR4BVer(ver)) {
+    } else if (ver.equals(Constants.VERSION) || VersionUtilities.isR5Ver(ver)) {
       return new TypeParserR5();
     } else
       throw new FHIRException("Unsupported version "+ver);
@@ -5598,7 +5598,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
 
       BaseAdvisor_10_50 advisor = new IGR2ConvertorAdvisor5();
       return VersionConvertorFactory_10_50.convertResource(res, advisor);
-    } else if (parseVersion.equals(Constants.VERSION) || VersionUtilities.isR4BVer(parseVersion)) {
+    } else if (parseVersion.equals(Constants.VERSION) || VersionUtilities.isR5Ver(parseVersion)) {
       if (contentType.contains("json")) {
         return new JsonParser(true, true).parse(source);
       } else if (contentType.contains("xml")) {
@@ -6476,7 +6476,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
           } else if (VersionUtilities.isR2Ver(version)) {
             BaseAdvisor_10_50 advisor = new IGR2ConvertorAdvisor5();
             new org.hl7.fhir.dstu2.formats.JsonParser().compose(bs, VersionConvertorFactory_10_50.convertResource(r.getResource(), advisor));
-          } else if (version.equals(Constants.VERSION) || VersionUtilities.isR4BVer(version)) {
+          } else if (version.equals(Constants.VERSION) || VersionUtilities.isR5Ver(version)) {
             new JsonParser().compose(bs, r.getResource());
           } else {
             throw new Exception("Unsupported version "+version);
