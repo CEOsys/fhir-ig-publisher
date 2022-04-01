@@ -1636,9 +1636,10 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
               if (response.hasMessage())
                 updateResourceStatus(response.getMessageElement(), fmm, status, statusNormVersion, res.getUrl());
             }
+            /* 2022-03-10 GL: Not working with new cardinality of MessageDefinition.Graph
             for (CanonicalType graph: md.getGraph()) {
               updateResourceStatus(graph, fmm, status, statusNormVersion, res.getUrl());
-            }
+            }*/
             break;
             
           case OperationDefinition:
