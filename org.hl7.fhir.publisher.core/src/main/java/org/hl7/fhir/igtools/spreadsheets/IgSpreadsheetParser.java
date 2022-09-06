@@ -409,7 +409,7 @@ public class IgSpreadsheetParser {
             throw new Exception("Search Param "+sd.getId()+"-"+n+" has no type "+ getLocation(row));
           sp.setType(readSearchType(sheet.getColumn(row, "Type"), row));
           sp.setDescription(sheet.getColumn(row, "Description"));
-          sp.setXpathUsage(readSearchXPathUsage(sheet.getColumn(row, "Expression Usage"), row));
+          sp.setProcessingMode(readSearchXPathUsage(sheet.getColumn(row, "Expression Usage"), row));
           sp.setXpath(sheet.getColumn(row, "XPath"));
           sp.setExpression(sheet.getColumn(row, "Expression"));
           if (!sp.hasExpression())
@@ -1387,12 +1387,12 @@ public class IgSpreadsheetParser {
             throw new Exception("Search Param "+sd.getName()+"/"+n+" has no type "+ getLocation(row));
           sp.setType(readSearchType(sheet.getColumn(row, "Type"), row));
           sp.setDescription(sheet.getColumn(row, "Description"));
-          sp.setXpathUsage(readSearchXPathUsage(sheet.getColumn(row, "Expression Usage"), row));
+          sp.setProcessingMode(readSearchXPathUsage(sheet.getColumn(row, "Expression Usage"), row));
           sp.setXpath(sheet.getColumn(row, "XPath"));
           sp.setExpression(sheet.getColumn(row, "Expression"));
           if (!sp.hasDescription())
             throw new Exception("Search Param "+sd.getId()+"/"+n+" has no description "+ getLocation(row));
-          if (!sp.hasXpathUsage())
+          if (!sp.hasProcessingMode())
             throw new Exception("Search Param "+sd.getId()+"/"+n+" has no expression usage "+ getLocation(row));
           FHIRPathEngine engine = new FHIRPathEngine(context);
           engine.check(null, sd.getType(), sd.getType(), sp.getExpression());

@@ -203,7 +203,7 @@ public class IGPack2NpmConvertor {
         for (ImplementationGuideDefinitionResourceComponent rd : ig.getDefinition().getResource()) {
           ManifestResourceComponent ra = getMatchingResource(rd.getReference().getReference(), ig);
           if (ra != null) {
-            ra.setExample(rd.getExample());
+            ra.setProfile(rd.getProfile());
             if (rd.hasExtension("http://hl7.org/fhir/StructureDefinition/implementationguide-page")) {
               ra.setRelativePath(rd.getExtensionString("http://hl7.org/fhir/StructureDefinition/implementationguide-page"));
               rd.removeExtension("http://hl7.org/fhir/StructureDefinition/implementationguide-page");

@@ -530,6 +530,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
       org.hl7.fhir.dstu2.model.Type t = new org.hl7.fhir.dstu2.formats.XmlParser().parseType(xml, type); 
       return VersionConvertorFactory_10_50.convertType(t);
     }
+
+    @Override
+    public Base parseType(Element element) throws FHIRFormatError, IOException, FHIRException {
+      return element.asType();
+    }
   }
 
   public class TypeParserR14 implements ITypeParser {
@@ -538,6 +543,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     public Base parseType(String xml, String type) throws IOException, FHIRException {
       org.hl7.fhir.dstu2016may.model.Type t = new org.hl7.fhir.dstu2016may.formats.XmlParser().parseType(xml, type); 
       return VersionConvertorFactory_14_50.convertType(t);
+    }
+
+    @Override
+    public Base parseType(Element element) throws FHIRFormatError, IOException, FHIRException {
+      return element.asType();
     }
   }
 
@@ -548,6 +558,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
       org.hl7.fhir.dstu3.model.Type t = new org.hl7.fhir.dstu3.formats.XmlParser().parseType(xml, type); 
       return VersionConvertorFactory_30_50.convertType(t);
     }
+
+    @Override
+    public Base parseType(Element element) throws FHIRFormatError, IOException, FHIRException {
+      return element.asType();
+    }
   }
 
   public class TypeParserR4 implements ITypeParser {
@@ -556,6 +571,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     public Base parseType(String xml, String type) throws IOException, FHIRException {
       org.hl7.fhir.r4.model.Type t = new org.hl7.fhir.r4.formats.XmlParser().parseType(xml, type); 
       return VersionConvertorFactory_40_50.convertType(t);
+    }
+
+    @Override
+    public Base parseType(Element element) throws FHIRFormatError, IOException, FHIRException {
+      return element.asType();
     }
   }
 
@@ -566,6 +586,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
       org.hl7.fhir.r4b.model.DataType t = new org.hl7.fhir.r4b.formats.XmlParser().parseType(xml, type); 
       return VersionConvertorFactory_43_50.convertType(t);
     }
+
+    @Override
+    public Base parseType(Element element) throws FHIRFormatError, IOException, FHIRException {
+      return element.asType();
+    }
   }
 
   public class TypeParserR5 implements ITypeParser {
@@ -573,6 +598,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     @Override
     public Base parseType(String xml, String type) throws IOException, FHIRException {
       return new org.hl7.fhir.r5.formats.XmlParser().parseType(xml, type); 
+    }
+
+    @Override
+    public Base parseType(Element element) throws FHIRFormatError, IOException, FHIRException {
+      return element.asType();
     }
   }
 
@@ -1407,7 +1437,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
         fmm = fmmExt.getValueIntegerType();
     }
     for (ImplementationGuideDefinitionPageComponent childPage: page.getPage()) {
-      FetchedResource res = resources.get(page.getNameUrlType().getValue());
+      FetchedResource res = resources.get(page.getName());
       if (res == null)
         updatePageStatus(childPage, fmm, standardsStatus, normVersion);
     }
@@ -1564,11 +1594,11 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
             }
             if (ad.hasProfile())
               updateResourceStatus(ad.getProfileElement(), fmm, status, statusNormVersion, res.getUrl());
-            for (Reference ref : ad.getObservationRequirement()) {
-              updateResourceStatus(ref, fmm, status, statusNormVersion, res.getUrl());
+            for (CanonicalType canonical : ad.getObservationRequirement()) {
+              updateResourceStatus(canonical, fmm, status, statusNormVersion, res.getUrl());
             }
-            for (Reference ref : ad.getObservationResultRequirement()) {
-              updateResourceStatus(ref, fmm, status, statusNormVersion, res.getUrl());
+            for (CanonicalType canonical : ad.getObservationResultRequirement()) {
+              updateResourceStatus(canonical, fmm, status, statusNormVersion, res.getUrl());
             }
             if (ad.hasTransform())
               updateResourceStatus(ad.getTransformElement(), fmm, status, statusNormVersion, res.getUrl());
@@ -2496,7 +2526,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
       } else if (p.getCode().equals("propagate-status")) {     
         isPropagateStatus = p.getValue().equals("true");
       } else if (p.getCode().equals("ig-expansion-parameters")) {     
-        expParamMap.put(p.getCode(), p.getValue());
+        expParamMap.put(p.getCode().toString(), p.getValue());
       } else if (p.getCode().equals("special-url")) {     
         listedURLExemptions.add(p.getValue());
       } else if (p.getCode().equals("template-openapi")) {     
@@ -4038,7 +4068,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
           }
         }
       }
-      if (res.hasExampleCanonicalType()) {
+      /*if (res.hasExampleCanonicalType()) {
         if (f != null && f.getResources().size()!=1)
           throw new Exception("Can't have an exampleFor unless the file has exactly one resource");
         FetchedResource r = res.hasUserData("loaded.resource") ? (FetchedResource) res.getUserData("loaded.resource") : f.getResources().get(0);
@@ -4054,7 +4084,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
         // Redo this because we now have example information
         if (f!=null)
           igpkp.findConfiguration(f, r);
-      }
+      }*/
     }
     if (duplicateInputResourcesDetected) {
       throw new Error("Unable to continue because duplicate input resources were identified");
@@ -4166,7 +4196,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
                 }
               }
             }
-            if (!rg.hasExample()) {
+            if (!rg.getIsExample()) {
               // If the instance declares a profile that's got the same canonical base as this IG, then the resource is an example of that profile
               Map<String, String> profiles = new HashMap<String, String>();
               if (r.getElement().hasChild("meta")) {
@@ -4190,7 +4220,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
               for (String p : profiles.keySet()) {
                 // Ideally we'd want to have *all* of the profiles listed as examples, but right now we can only have one, so we just overwrite and take the last.
                 if (p.startsWith(igpkp.getCanonical()+"/StructureDefinition")) {
-                  rg.setExample(new CanonicalType(p));
+                  rg.setProfile(new ArrayList<>(Arrays.asList(new CanonicalType(p))));
                   if (rg.getName()==null) {
                     String name = String.join(" - ", rg.getReference().getReference().split("/"));
                     rg.setName("Example " + name);
@@ -4353,8 +4383,8 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
 
 
   private void loadIgPages(ImplementationGuideDefinitionPageComponent page, HashMap<String, ImplementationGuideDefinitionPageComponent> map) throws FHIRException {
-    if (page.hasName() && page.hasNameUrlType())
-      map.put(page.getNameUrlType().getValue(), page);
+    if (page.hasName())
+      map.put(page.getName(), page);
     for (ImplementationGuideDefinitionPageComponent childPage: page.getPage()) {
       loadIgPages(childPage, map);
     }
@@ -5085,15 +5115,15 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     r.setResEntry(srcForLoad);
     srcForLoad.setUserData("loaded.resource", r);
     r.setResEntry(srcForLoad);
-    if (srcForLoad.hasExampleCanonicalType()) {
-      StructureDefinition sd = context.fetchResource(StructureDefinition.class, srcForLoad.getExampleCanonicalType().getValue());
+    /*if (srcForLoad.hasProfile()) {
+      StructureDefinition sd = context.fetchResource(StructureDefinition.class, srcForLoad.getProfile().getValue());
       if (sd == null) {
         file.getErrors().add(new ValidationMessage(Source.ExampleValidator, IssueType.NOTFOUND, "Binary", "Example Logical Model "+srcForLoad.getExampleCanonicalType().getValue()+" not found", IssueSeverity.ERROR));
 
       }
       r.getElement().setUserData("logical", srcForLoad.getExampleCanonicalType().getValue());
       r.setExampleUri(srcForLoad.getExampleCanonicalType().getValue());
-    }
+    }*/
     igpkp.findConfiguration(file, r);
     srcForLoad.setUserData("loaded.resource", r);
   }
@@ -5168,10 +5198,10 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
         if (srcForLoad != null) {
           srcForLoad.setUserData("loaded.resource", r);
           r.setResEntry(srcForLoad);
-          if (srcForLoad.hasExampleCanonicalType()) {
+          /*if (srcForLoad.hasExampleCanonicalType()) {
             r.getElement().setUserData("profile", srcForLoad.getExampleCanonicalType().getValue());
             r.getStatedProfiles().add(srcForLoad.getExampleCanonicalType().getValue());
-          }
+          }*/
         }
         
         r.setTitle(e.getChildValue("name"));
@@ -5530,7 +5560,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
   private boolean isExampleResource(CanonicalResource mr) {
     for (ImplementationGuideDefinitionResourceComponent ir : publishedIg.getDefinition().getResource()) {
       if (isSameResource(ir, mr)) {
-        return ir.hasExample();
+        return ir.hasIsExample() && ir.getIsExample();
       }
     }
     return false;
@@ -7580,7 +7610,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
   }
 
   private void applyPageTemplate(String htmlTemplate, String mdTemplate, ImplementationGuideDefinitionPageComponent page) throws Exception {
-    String p = page.getNameUrlType().getValue();
+    String p = page.getName();
     String sourceName = null;
     String template = null;
     if (htmlTemplate != null && page.getGeneration() == GuidePageGeneration.HTML  && !relativeNames.keySet().contains(p) && p.endsWith(".html")) {
@@ -7613,17 +7643,17 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
 
   private String breadCrumbForPage(ImplementationGuideDefinitionPageComponent page, boolean withLink) throws FHIRException {
     if (withLink) {
-      return "<li><a href='" + page.getNameUrlType().getValue() + "'><b>" + Utilities.escapeXml(page.getTitle()) + "</b></a></li>";
+      return "<li><a href='" + page.getName() + "'><b>" + Utilities.escapeXml(page.getTitle()) + "</b></a></li>";
     } else {
       return "<li><b>" + Utilities.escapeXml(page.getTitle()) + "</b></li>";
     }
   }
 
   private void addPageData(JsonObject pages, ImplementationGuideDefinitionPageComponent page, String label, String breadcrumb) throws FHIRException {
-    if (!page.hasNameUrlType()) {
+    if (!page.hasName()) {
       errors.add(new ValidationMessage(Source.Publisher, IssueType.REQUIRED, "Base IG resource", "The page \""+page.getTitle()+"\" is missing a name/source element", IssueSeverity.ERROR));
     } else {
-      addPageData(pages, page, page.getNameUrlType().getValue(), page.getTitle(), label, breadcrumb);
+      addPageData(pages, page, page.getName(), page.getTitle(), label, breadcrumb);
     }
   }
 
@@ -7780,7 +7810,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
       for (ImplementationGuideDefinitionPageComponent examplePage : examplePages) {
         JsonObject exampleItem = new JsonObject();
         exampleArray.add(exampleItem);
-        exampleItem.addProperty("url", examplePage.getNameUrlType().getValue());
+        exampleItem.addProperty("url", examplePage.getName());
         exampleItem.addProperty("title", examplePage.getTitle());
       }
     }
@@ -7810,8 +7840,8 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
         s = s + "<img style=\"background-color:inherit\" alt=\".\" class=\"hierarchy\" src=\"tbl_vjoin.png\"/>";
     }
     s = s + "<img style=\"background-color:white;background-color:inherit\" alt=\".\" class=\"hierarchy\" src=\"icon_page.gif\"/>";
-    if (page.hasNameUrlType()) { 
-      s = s + "<a title=\"" + Utilities.escapeXml(page.getTitle()) + "\" href=\"" + (currentOffset!=null ? currentOffset + "/" : "") + page.getNameUrlType().getValue() +"\">" + label + " " + Utilities.escapeXml(page.getTitle()) + "</a></td></tr>";
+    if (page.hasName()) {
+      s = s + "<a title=\"" + Utilities.escapeXml(page.getTitle()) + "\" href=\"" + (currentOffset!=null ? currentOffset + "/" : "") + page.getName() +"\">" + label + " " + Utilities.escapeXml(page.getTitle()) + "</a></td></tr>";
     } else {
       s = s + "<a title=\"" + Utilities.escapeXml(page.getTitle()) + "\">" + label + " " + Utilities.escapeXml(page.getTitle()) + "</a></td></tr>";      
     }
@@ -7826,13 +7856,13 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
         else
           newIndents = newIndents + "<img style=\"background-color:inherit\" alt=\".\" class=\"hierarchy\" src=\"tbl_vline.png\"/>";
       }
-      if (insertAfterName!=null && childPage.getNameUrlType().getValue().equals(insertAfterName)) {
+      if (insertAfterName!=null && childPage.getName().equals(insertAfterName)) {
         total++;
       }
       
       s = s + createTocPage(childPage, insertPage, insertAfterName, insertOffset, currentOffset, newIndents, (label.equals("0") ? "" : label+".") + Integer.toString(i), i==total);
       i++;
-      if (insertAfterName!=null && childPage.getNameUrlType().getValue().equals(insertAfterName)) {
+      if (insertAfterName!=null && childPage.getName().equals(insertAfterName)) {
         s = s + createTocPage(insertPage, null, null, "", insertOffset, newIndents, (label.equals("0") ? "" : label+".") + Integer.toString(i), i==total);
         i++;
       }
@@ -7849,7 +7879,7 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     @Override
     public int compare(ImplementationGuideDefinitionPageComponent x, ImplementationGuideDefinitionPageComponent y) {
       try {
-        return x.getNameUrlType().getValue().compareTo(y.getNameUrlType().getValue());
+        return x.getName().compareTo(y.getName());
       } catch (FHIRException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -8496,15 +8526,15 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
 
   private Set<String> pageTargets() {
     Set<String> set = new HashSet<>();
-    set.add(sourceIg.getDefinition().getPage().getNameUrlType().primitiveValue());
+    set.add(sourceIg.getDefinition().getPage().getName());
     listPageTargets(set, sourceIg.getDefinition().getPage().getPage());
     return set;
   }
 
   private void listPageTargets(Set<String> set, List<ImplementationGuideDefinitionPageComponent> list) {
     for (ImplementationGuideDefinitionPageComponent p : list) {
-      if (p.hasNameUrlType()) {
-        set.add(p.getNameUrlType().primitiveValue());
+      if (p.hasName()) {
+        set.add(p.getName());
       }
       listPageTargets(set, p.getPage());
     }
@@ -8838,12 +8868,12 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     ImplementationGuideDefinitionResourceComponent igr = findIGReference(r.fhirType(), r.getId());
     if (igr == null)
       return false;
-    else if (!igr.hasExample())
+    else if (!igr.hasIsExample())
       return false;
-    else if (igr.hasExampleCanonicalType())
+    else if (igr.hasProfile())
       return true;
     else
-      return igr.getExampleBooleanType().booleanValue();
+      return igr.getIsExample();
   }
 
 
