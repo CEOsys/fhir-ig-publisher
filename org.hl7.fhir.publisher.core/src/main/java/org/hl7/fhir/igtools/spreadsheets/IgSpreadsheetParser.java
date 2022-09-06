@@ -1424,17 +1424,17 @@ public class IgSpreadsheetParser {
     throw new Exception("Unknown Search Type '" + s + "': " + getLocation(row));
   }
 
-  private SearchParameter.XPathUsageType readSearchXPathUsage(String s, int row) throws Exception {
+  private SearchParameter.SearchProcessingModeType readSearchXPathUsage(String s, int row) throws Exception {
     if (Utilities.noString(s))
-      return SearchParameter.XPathUsageType.NORMAL;
+      return SearchParameter.SearchProcessingModeType.NORMAL;
     if ("normal".equals(s))
-      return SearchParameter.XPathUsageType.NORMAL;
+      return SearchParameter.SearchProcessingModeType.NORMAL;
     if ("nearby".equals(s))
-      return SearchParameter.XPathUsageType.OTHER;
+      return SearchParameter.SearchProcessingModeType.OTHER;
     if ("distance".equals(s))
-      return SearchParameter.XPathUsageType.OTHER;
+      return SearchParameter.SearchProcessingModeType.OTHER;
     if ("phonetic".equals(s))
-      return SearchParameter.XPathUsageType.PHONETIC;
+      return SearchParameter.SearchProcessingModeType.PHONETIC;
     throw new Exception("Unknown Search Path Usage '" + s + "' at " + getLocation(row));
   }
 
