@@ -1524,7 +1524,7 @@ public class IgSpreadsheetParser {
             p.setDocumentation(doco);
             p.setMin(Integer.parseInt(min));
             p.setMax(max);
-            p.setType(Enumerations.FHIRAllTypes.fromCode(type));
+            p.setType(Enumerations.FHIRTypes.fromCode(type));
             p.getSearchTypeElement().setValueAsString(sheet.getColumn(row, "Search Type"));
             p.addTargetProfile(profile);
             String bs = sheet.getColumn(row, "Binding");
