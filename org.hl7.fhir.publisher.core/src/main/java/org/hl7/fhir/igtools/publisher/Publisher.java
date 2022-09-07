@@ -2471,128 +2471,129 @@ public class Publisher implements IWorkerContext.ILoggingService, IReferenceReso
     int count = 0;
     for (ImplementationGuideDefinitionParameterComponent p : sourceIg.getDefinition().getParameter()) {
       // documentation for this list: https://confluence.hl7.org/display/FHIR/Implementation+Guide+Parameters
-      if (p.getCode().equals("logging")) { // added
+      String code = p.getCode().getCode();
+      if (code.equals("logging")) { // added
         logOptions.add(p.getValue());        
-      } else if (p.getCode().equals("generate")) { // added
+      } else if (code.equals("generate")) { // added
         if ("example-narratives".equals(p.getValue()))
           genExampleNarratives = true;
         if ("examples".equals(p.getValue()))
           genExamples = true;
-      } else if (p.getCode().equals("no-narrative")) {
+      } else if (code.equals("no-narrative")) {
         noNarratives.add(p.getValue());
-      } else if (p.getCode().equals("no-validate")) {
+      } else if (code.equals("no-validate")) {
         noValidate.add(p.getValue());
-      } else if (p.getCode().equals("path-resource")) {
+      } else if (code.equals("path-resource")) {
         resourceDirs.add(Utilities.path(rootDir, p.getValue()));
-      } else if (p.getCode().equals("autoload-resources")) {     
+      } else if (code.equals("autoload-resources")) {
         autoLoad = "true".equals(p.getValue());
-      } else if (p.getCode().equals("codesystem-property")) {     
+      } else if (code.equals("codesystem-property")) {
         codeSystemProps.add(p.getValue());
-      } else if (p.getCode().equals("path-pages")) {     
+      } else if (code.equals("path-pages")) {
         pagesDirs.add(Utilities.path(rootDir, p.getValue()));
-      } else if (p.getCode().equals("copyrightyear")) {     
+      } else if (code.equals("copyrightyear")) {
         copyrightYear = p.getValue();
-      } else if (p.getCode().equals("path-qa")) {     
+      } else if (code.equals("path-qa")) {
         qaDir = Utilities.path(rootDir, p.getValue());
-      } else if (p.getCode().equals("path-tx-cache")) {     
+      } else if (code.equals("path-tx-cache")) {
         vsCache =  Paths.get(p.getValue()).isAbsolute() ? p.getValue() : Utilities.path(rootDir, p.getValue());
-      } else if (p.getCode().equals("path-liquid")) {
+      } else if (code.equals("path-liquid")) {
         templateProvider.load(Utilities.path(rootDir, p.getValue()));
-      } else if (p.getCode().equals("path-temp")) {
+      } else if (code.equals("path-temp")) {
         tempDir = Utilities.path(rootDir, p.getValue());
         if (!tempDir.startsWith(rootDir))
           throw new Exception("Temp directory must be a sub-folder of the base directory");
-      } else if (p.getCode().equals("path-output") && mode != IGBuildMode.WEBSERVER) {
+      } else if (code.equals("path-output") && mode != IGBuildMode.WEBSERVER) {
         // Can't override outputDir if building using webserver
         outputDir = Utilities.path(rootDir, p.getValue());
         if (!outputDir.startsWith(rootDir))
           throw new Exception("Output directory must be a sub-folder of the base directory");
-      } else if (p.getCode().equals("path-history")) {     
+      } else if (code.equals("path-history")) {
         historyPage = p.getValue();
-      } else if (p.getCode().equals("path-expansion-params")) {     
+      } else if (code.equals("path-expansion-params")) {
         expParams = p.getValue();
-      } else if (p.getCode().equals("path-suppressed-warnings")) {     
+      } else if (code.equals("path-suppressed-warnings")) {
         loadSuppressedMessages(Utilities.path(rootDir, p.getValue()), "ImplementationGuide.definition.parameter["+count+"].value");
-      } else if (p.getCode().equals("html-exempt")) {     
+      } else if (code.equals("html-exempt")) {
         exemptHtmlPatterns.add(p.getValue());
-      } else if (p.getCode().equals("usage-stats-opt-out")) {     
+      } else if (code.equals("usage-stats-opt-out")) {
         useStatsOptOut = "true".equals(p.getValue());
-      } else if (p.getCode().equals("extension-domain")) {
+      } else if (code.equals("extension-domain")) {
         extensionDomains.add(p.getValue());
-      } else if (p.getCode().equals("bundle-references-resolve")) {
+      } else if (code.equals("bundle-references-resolve")) {
         bundleReferencesResolve = "true".equals(p.getValue());        
-      } else if (p.getCode().equals("active-tables")) {
+      } else if (code.equals("active-tables")) {
         HierarchicalTableGenerator.ACTIVE_TABLES = "true".equals(p.getValue());
-      } else if (p.getCode().equals("propagate-status")) {     
+      } else if (code.equals("propagate-status")) {
         isPropagateStatus = p.getValue().equals("true");
-      } else if (p.getCode().equals("ig-expansion-parameters")) {     
-        expParamMap.put(p.getCode().toString(), p.getValue());
-      } else if (p.getCode().equals("special-url")) {     
+      } else if (code.equals("ig-expansion-parameters")) {
+        expParamMap.put(code.toString(), p.getValue());
+      } else if (code.equals("special-url")) {
         listedURLExemptions.add(p.getValue());
-      } else if (p.getCode().equals("template-openapi")) {     
+      } else if (code.equals("template-openapi")) {
         openApiTemplate = p.getValue();
-      } else if (p.getCode().equals("template-html")) {     
+      } else if (code.equals("template-html")) {
         htmlTemplate = p.getValue();
-      } else if (p.getCode().equals("format-date")) {     
+      } else if (code.equals("format-date")) {
         fmtDate = p.getValue();
-      } else if (p.getCode().equals("format-datetime")) {     
+      } else if (code.equals("format-datetime")) {
         fmtDateTime = p.getValue();
-      } else if (p.getCode().equals("template-md")) {     
+      } else if (code.equals("template-md")) {
         mdTemplate = p.getValue();
-      } else if (p.getCode().equals("path-binary")) {     
+      } else if (code.equals("path-binary")) {
         binaryPaths.add(Utilities.path(rootDir, p.getValue()));
-      } else if (p.getCode().equals("show-inherited-invariants")) {     
+      } else if (code.equals("show-inherited-invariants")) {
         allInvariants = "true".equals(p.getValue());
-      } else if (p.getCode().equals("apply-contact") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-contact") && p.getValue().equals("true")) {
         contacts = sourceIg.getContact();
-      } else if (p.getCode().equals("apply-context") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-context") && p.getValue().equals("true")) {
         contexts = sourceIg.getUseContext();
-      } else if (p.getCode().equals("apply-copyright") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-copyright") && p.getValue().equals("true")) {
         copyright = sourceIg.getCopyright();
-      } else if (p.getCode().equals("apply-jurisdiction") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-jurisdiction") && p.getValue().equals("true")) {
         jurisdictions = sourceIg.getJurisdiction();
-      } else if (p.getCode().equals("apply-license") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-license") && p.getValue().equals("true")) {
         licenseInfo = sourceIg.getLicense();
-      } else if (p.getCode().equals("apply-publisher") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-publisher") && p.getValue().equals("true")) {
         publisher = sourceIg.getPublisher();
-      } else if (p.getCode().equals("apply-version") && p.getValue().equals("true")) {
+      } else if (code.equals("apply-version") && p.getValue().equals("true")) {
         businessVersion = sourceIg.getVersion();
-      } else if (p.getCode().equals("default-contact") && p.getValue().equals("true")) {
+      } else if (code.equals("default-contact") && p.getValue().equals("true")) {
         defaultContacts = sourceIg.getContact();
-      } else if (p.getCode().equals("default-context") && p.getValue().equals("true")) {
+      } else if (code.equals("default-context") && p.getValue().equals("true")) {
         defaultContexts = sourceIg.getUseContext();
-      } else if (p.getCode().equals("default-copyright") && p.getValue().equals("true")) {
+      } else if (code.equals("default-copyright") && p.getValue().equals("true")) {
         defaultCopyright = sourceIg.getCopyright();
-      } else if (p.getCode().equals("default-jurisdiction") && p.getValue().equals("true")) {
+      } else if (code.equals("default-jurisdiction") && p.getValue().equals("true")) {
         defaultJurisdictions = sourceIg.getJurisdiction();
-      } else if (p.getCode().equals("default-license") && p.getValue().equals("true")) {
+      } else if (code.equals("default-license") && p.getValue().equals("true")) {
         defaultLicenseInfo = sourceIg.getLicense();
-      } else if (p.getCode().equals("default-publisher") && p.getValue().equals("true")) {
+      } else if (code.equals("default-publisher") && p.getValue().equals("true")) {
         defaultPublisher = sourceIg.getPublisher();
-      } else if (p.getCode().equals("default-version") && p.getValue().equals("true")) {
+      } else if (code.equals("default-version") && p.getValue().equals("true")) {
         defaultBusinessVersion = sourceIg.getVersion();
-      } else if (p.getCode().equals("generate-version")) {     
+      } else if (code.equals("generate-version")) {
         generateVersions.add(p.getValue());
-      } else if (p.getCode().equals("suppressed-ids")) {
+      } else if (code.equals("suppressed-ids")) {
         for (String s : p.getValue().split("\\,"))
           suppressedIds.add(s);
-      } else if (p.getCode().equals("allow-extensible-warnings")) {     
+      } else if (code.equals("allow-extensible-warnings")) {
         allowExtensibleWarnings = p.getValue().equals("true");
-      } else if (p.getCode().equals("version-comparison")) {     
+      } else if (code.equals("version-comparison")) {
         if (comparisonVersions == null) {
           comparisonVersions = new ArrayList<>();
         }
         if (!"n/a".equals(p.getValue())) {
           comparisonVersions.add(p.getValue());
         }        
-      } else if (p.getCode().equals("ipa-comparison")) {     
+      } else if (code.equals("ipa-comparison")) {
         if (ipaComparisons == null) {
           ipaComparisons = new ArrayList<>();
         }
         if (!"n/a".equals(p.getValue())) {
           ipaComparisons.add(p.getValue());
         }        
-      } else if (p.getCode().equals("validation")) {
+      } else if (code.equals("validation")) {
         if (p.getValue().equals("check-must-support"))
           hintAboutNonMustSupport = true;
         else if (p.getValue().equals("allow-any-extensions"))
