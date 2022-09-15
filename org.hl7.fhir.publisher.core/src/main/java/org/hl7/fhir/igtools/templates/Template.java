@@ -67,7 +67,7 @@ public class Template {
   public static final int IG_NONE = 0;
   public static final int IG_ANY = 1;
   public static final int IG_NO_RESOURCE = 2;
-  private static final boolean USE_R5_IG_FORMAT = false;
+  private static final boolean USE_R5_IG_FORMAT = true;
   
   private NpmPackage pack;
   private JsonObject configuration;
