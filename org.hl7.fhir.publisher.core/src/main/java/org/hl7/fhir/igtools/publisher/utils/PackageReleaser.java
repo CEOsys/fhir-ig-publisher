@@ -165,7 +165,7 @@ public class PackageReleaser {
     }
   }
 
-  private static final String RSS_DATE = "EEE, dd MMM yyyy hh:mm:ss";
+  private static final String RSS_DATE = "EEE, dd MMM yyyy hh:mm:ss Z";
 
   private Document rss;
   private Element channel;
@@ -539,7 +539,7 @@ public class PackageReleaser {
       }
       for (String s : deps) {
         d.remove(s);
-        d.addProperty(s, "current");
+        d.addProperty(s, VersionUtilities.getCurrentVersion(JsonUtilities.strings(npm.getAsJsonArray("fhirVersions")).get(0)));
       }
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
       String jcnt = gson.toJson(npm);

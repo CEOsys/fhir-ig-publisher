@@ -15,7 +15,9 @@ import org.apache.commons.io.IOUtils;
 import org.hl7.fhir.igtools.publisher.PastProcessHackerUtilities;
 import org.hl7.fhir.igtools.publisher.Publisher;
 import org.hl7.fhir.igtools.publisher.utils.WebSiteLayoutRulesProviders.WebSiteLayoutRulesProvider;
+import org.hl7.fhir.utilities.FileNotifier;
 import org.hl7.fhir.utilities.IniFile;
+import org.hl7.fhir.utilities.TextFile;
 import org.hl7.fhir.utilities.Utilities;
 import org.hl7.fhir.utilities.ZipGenerator;
 import org.hl7.fhir.utilities.json.JsonUtilities;
@@ -47,18 +49,19 @@ public class PublicationProcess {
    *   - TSC has approved the publication
    *   
    */
-  
+
   /**
    * 
    * @param source - the directory that contains the IG source that will be published. This must be post normal build, and the build must have succeeded, and the output must have gone to \output. it will  be rebuilt
    * @param destination - the root folder of the local copy of files for the web site to which the IG is being published. 
    * @throws Exception 
    */
-  public void publish(String source, String rootFolder, boolean milestone, String registrySource, String history, String temp) throws Exception {
+  public void publish(String source, String rootFolder, boolean first, String date, String registrySource, String history, String temp) throws Exception {
     PublisherConsoleLogger logger = new PublisherConsoleLogger();
+    rootFolder = new File(rootFolder).getAbsolutePath();
     logger.start(Utilities.path("[tmp]", "publication-process.log"));
     try {
-      List<ValidationMessage> res = publishInner(source, rootFolder, milestone, registrySource, history, temp, logger);
+      List<ValidationMessage> res = publishInner(source, rootFolder, first, date, registrySource, history, temp, logger);
       if (res.size() == 0) {
         System.out.println("Success");
       } else {
@@ -73,7 +76,7 @@ public class PublicationProcess {
     System.out.println("Full log in "+logger.getFilename());
   }
   
-  public List<ValidationMessage> publishInner(String source, String rootFolder, boolean milestone, String registrySource, String history, String temp, PublisherConsoleLogger logger) throws Exception {
+  public List<ValidationMessage> publishInner(String source, String rootFolder, boolean first, String date, String registrySource, String history, String temp, PublisherConsoleLogger logger) throws Exception {
     List<ValidationMessage> res = new ArrayList<>();
 
     // check the wider context
@@ -121,39 +124,64 @@ public class PublicationProcess {
     String destination = rp.getDestination(rootFolder); 
     // ----------------------------------------------
 
-    if (!check(res, new File(Utilities.path(destination, "package-list.json")).exists(), "Destination '"+destination+"' does not contain a package-list.json - must be set up manually for first publication")) {
+    if (!check(res, !(new File(Utilities.path(source, "package-list.json")).exists()), "Source '"+source+"' contains a package-list.json - must not exist")) {
       return res;
-    }
-    if (!check(res, new File(Utilities.path(source, "package-list.json")).exists(), "Source '"+source+"' does not contain a package-list.json - consult documentation to see how to set it up")) {
+    }            
+    if (!check(res, new File(Utilities.path(source, "publication-request.json")).exists(), "Source '"+source+"' does not contain a publication-request.json - consult documentation to see how to set it up")) {
       return res;
     }            
     
-    JsonObject plSrc = JsonTrackingParser.parseJson(loadFile("Source Package List", Utilities.path(source, "package-list.json")));
+    JsonObject prSrc = JsonTrackingParser.parseJson(loadFile("Source Package List", Utilities.path(source, "publication-request.json")));
+
+    boolean milestone = JsonUtilities.bool(prSrc, "milestone");
+    if (first) {
+      if (new File(Utilities.path(destination, "package-list.json")).exists()) {
+        check(res, false, "Destination Package List already exists, but the parameter -first was provided");
+      } else {
+        boolean ok = true;
+        ok = check(res, !Utilities.noString(JsonUtilities.str(prSrc, "category")), "No category in the publication request") && ok;
+        ok = check(res, !Utilities.noString(JsonUtilities.str(prSrc, "title")), "No title in the publication request") && ok;
+        ok = check(res, !Utilities.noString(JsonUtilities.str(prSrc, "introduction")), "No introduction in the publication request") && ok;
+        ok = check(res, !Utilities.noString(JsonUtilities.str(prSrc, "ci-build")), "No ci-build in the publication request") && ok;
+        if (!ok) {
+          return res;
+        }
+        JsonObject tplDst = new JsonObject();
+        tplDst.addProperty("package-id", npm.name());
+        tplDst.addProperty("canonical", npm.canonical());
+        tplDst.addProperty("title", JsonUtilities.str(prSrc, "title"));
+        tplDst.addProperty("category", JsonUtilities.str(prSrc, "category"));
+        tplDst.addProperty("introduction", JsonUtilities.str(prSrc, "introduction"));
+        JsonArray vl = new JsonArray();
+        tplDst.add("list", vl);
+        JsonObject ci = new JsonObject();
+        vl.add(ci);
+        ci.addProperty("version", "current");
+        ci.addProperty("desc", "Continuous Integration Build (latest in version control) - Content subject to frequent changes");
+        ci.addProperty("path", JsonUtilities.str(prSrc, "ci-build"));
+        ci.addProperty("status", "ci-build");
+        JsonTrackingParser.write(tplDst, Utilities.path(destination, "package-list.json"));
+      }      
+    }
+    if (!check(res, new File(Utilities.path(destination, "package-list.json")).exists(), "Destination '"+destination+"' does not contain a package-list.json - cannot proceed")) {
+      return res;
+    }
     JsonObject plPub = JsonTrackingParser.parseJson(loadFile("Published Package List", Utilities.path(destination, "package-list.json")));
 
-    check(res, id.equals(JsonUtilities.str(plSrc, "package-id")), "Source Package List has the wrong package id: "+JsonUtilities.str(plSrc, "package-id")+" (should be "+id+")");
+    check(res, id.equals(JsonUtilities.str(prSrc, "package-id")), "Source Package List has the wrong package id: "+JsonUtilities.str(prSrc, "package-id")+" (should be "+id+")");
     check(res, id.equals(JsonUtilities.str(plPub, "package-id")), "Published Package List has the wrong package id: "+JsonUtilities.str(plPub, "package-id")+" (should be "+id+")");
-    check(res, canonical.equals(JsonUtilities.str(plSrc, "canonical")), "Source Package List has the wrong canonical: "+JsonUtilities.str(plSrc, "canonical")+" (should be "+canonical+")");
     check(res, canonical.equals(JsonUtilities.str(plPub, "canonical")), "Source Package List has the wrong canonical: "+JsonUtilities.str(plPub, "canonical")+" (should be "+canonical+")");
-    check(res, plSrc.has("category"), "No Entry found in source package-list for 'category'");
     check(res, plPub.has("category"), "No Entry found in dest package-list 'category'");
-    check(res, JsonUtilities.str(plSrc, "category").equals(JsonUtilities.str(plPub, "category")), "Category values differ between source and publication package-list: "+JsonUtilities.str(plSrc, "category")+" vs " +JsonUtilities.str(plPub, "category"));
 
-    JsonObject vSrc = JsonUtilities.findByStringProp(plSrc.getAsJsonArray("list"), "version", version);
     JsonObject vPub = JsonUtilities.findByStringProp(plPub.getAsJsonArray("list"), "version", version);
     
     check(res, plPub.getAsJsonArray("list").size() > 0, "Dest package-list has no existent version (should have ci-build entry)");
-    check(res, vSrc != null, "No Entry found in source package-list for v"+version);
     check(res, vPub == null, "Found an entry in the publication package-list for v"+version+" - it looks like it has already been published");
-    if (vSrc == null) { 
-      return res;
-    }
-    check(res, vSrc.has("desc") || vSrc.has("descmd"), "Source Package list has no description for v"+version);
-    String pathVer = JsonUtilities.str(vSrc, "path");
+    check(res, prSrc.has("desc") || prSrc.has("descmd"), "Source Package list has no description for v"+version);
+    String pathVer = JsonUtilities.str(prSrc, "path");
     String vCode = pathVer.substring(pathVer.lastIndexOf("/")+1);
     
-    check(res, pathVer.equals(Utilities.pathURL(canonical, vCode)), "Source Package list path v"+version+" is wrong - is '"+JsonUtilities.str(vSrc, "path")+"', doesn't match canonical)");
-    check(res, npm.fhirVersion().equals(JsonUtilities.str(vSrc, "fhirversion")), "Source Package list fhir version for v"+version+" is wrong - is '"+JsonUtilities.str(vSrc, "fhirversion")+"', should be '"+npm.fhirVersion()+"')");
+    check(res, pathVer.equals(Utilities.pathURL(canonical, vCode)), "Source publication request path is wrong - is '"+JsonUtilities.str(prSrc, "path")+"', doesn't match canonical)");
     // ok, the ids and canonicals are all lined up, and w're ready to publish     
 
     check(res, id.equals(JsonUtilities.str(qa, "package-id")), "Generated IG has wrong package "+JsonUtilities.str(qa, "package-id"));
@@ -168,11 +196,16 @@ public class PublicationProcess {
     }    
     check(res, !(new File(destVer).exists()), "Nominated path '"+destVer+"' already exists");
 
+    // check to see if there's history template files; if there isn't, copy it in
+    check(res, new File(Utilities.path(rootFolder, "templates", "header.template")).exists(), Utilities.path(rootFolder, "templates", "header.template")+" not found - template not set up properly");
+    check(res, new File(Utilities.path(rootFolder, "templates", "preamble.template")).exists(), Utilities.path(rootFolder, "templates", "preamble.template")+" not found - template not set up properly");
+    check(res, new File(Utilities.path(rootFolder, "templates", "postamble.template")).exists(), Utilities.path(rootFolder, "templates", "postamble.template")+" not found - template not set up properly");
+      
     // todo: check the license, header, footer?... 
     
     // well, we've run out of things to test... time to actually try...
     if (res.size() == 0) {
-      doPublish(fSource, fOutput, qa, destination, destVer, pathVer, fRoot, ini, plPub, vSrc, fRegistry, npm, milestone, fHistory, temp, logger);
+      doPublish(fSource, fOutput, qa, destination, destVer, pathVer, fRoot, ini, plPub, prSrc, fRegistry, npm, milestone, date, fHistory, temp, logger);
     }        
     return res;
     
@@ -214,10 +247,10 @@ public class PublicationProcess {
     return new FileInputStream(f);
   }
 
-  private void doPublish(File fSource, File fOutput, JsonObject qa, String destination, String destVer, String pathVer, File fRoot, IniFile ini, JsonObject plPub, JsonObject vSrc, File fRegistry, NpmPackage npm, boolean milestone, File history, String tempDir, PublisherConsoleLogger logger) throws Exception {
+  private void doPublish(File fSource, File fOutput, JsonObject qa, String destination, String destVer, String pathVer, File fRoot, IniFile ini, JsonObject plPub, JsonObject prSrc, File fRegistry, NpmPackage npm, boolean milestone, String date, File history, String tempDir, PublisherConsoleLogger logger) throws Exception {
     // ok. all our tests have passed.
     // 1. do the publication build(s)
-    System.out.println("All checks passed. Do the publication builds");        
+    System.out.println("All checks passed. Do the publication build from "+fSource.getAbsolutePath()+" and publish to "+destination);        
 
     // create a temporary copy and build in that:
     File temp = cloneToTemp(tempDir, fSource, npm.name()+"#"+npm.version());
@@ -238,12 +271,6 @@ public class PublicationProcess {
     System.out.println("");        
     System.out.println("ok. All checks passed. Publish v"+npm.version()+" to "+destVer);        
 
-    // check to see if there's a history; if there isn't, copy it in
-    if (!new File(Utilities.path(destination, "history.html")).exists()) {
-      System.out.println("Copy history from "+history.getAbsolutePath()+" to "+destination);    
-      Utilities.copyDirectory(history.getAbsolutePath(), destination, null);
-    }
-
     // 3. create the folder {root}/{realm}/{code}/{subdir}
     System.out.println("Copy the IG to "+destVer);    
     Utilities.createDirectory(destVer);
@@ -251,13 +278,13 @@ public class PublicationProcess {
 
     // now, update the package list 
     System.out.println("Update "+Utilities.path(destination, "package-list.json"));    
-    updatePackageList(plPub, vSrc, Utilities.path(destination, "package-list.json"), milestone);
+    updatePackageList(plPub, fSource.getAbsolutePath(), prSrc, pathVer,  Utilities.path(destination, "package-list.json"), milestone, date, npm.fhirVersion());
     
     if (milestone) {
       System.out.println("This is a milestone release - publish v"+npm.version()+" to "+destination);      
       
       System.out.println("Clear out existing content");        
-      Publisher.main(new String[] { "-delete-current", destination, "-history", history.getAbsolutePath(), "-no-exit"});       
+       Publisher.main(new String[] { "-delete-current", destination, "-history", history.getAbsolutePath(), "-no-exit"});       
 
       System.out.println("Copy to directory");        
       FileUtils.copyDirectory(new File(Utilities.path(tempM.getAbsolutePath(), "output")), new File(destination));
@@ -265,7 +292,7 @@ public class PublicationProcess {
     
     // finally
     System.out.println("Rebuild everything for "+Utilities.path(destination, "package-list.json"));
-    Publisher.main(new String[] { "-publish-update", "-folder", fRoot.getAbsolutePath(), "-registry", fRegistry.getAbsolutePath(), "-filter", destination, "-no-exit"});
+    Publisher.main(new String[] { "-publish-update", "-folder", fRoot.getAbsolutePath(), "-registry", fRegistry.getAbsolutePath(), "-filter", destination, "-history", history.getAbsolutePath(), "-no-exit"});
 
     System.out.println("Finished Publishing");
     logger.stop();
@@ -288,25 +315,42 @@ public class PublicationProcess {
     return fDest;
   }
   
-  private void updatePackageList(JsonObject plPub, JsonObject vSrc, String path, boolean milestone) throws IOException {
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    String date = sdf.format(new Date());
-    if (vSrc.has("date")) {
-      vSrc.remove("date");
+  private void updatePackageList(JsonObject plPub, String folder, JsonObject prSrc, String webpath, String filepath, boolean milestone, String date, String fhirVersion) throws Exception {
+    if (date == null) {
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+      date = sdf.format(new Date());      
     }
-    vSrc.addProperty("date", date);
-    if (vSrc.has("current")) {
-      vSrc.remove("current");      
+    JsonObject newVer = new JsonObject();
+    newVer.addProperty("version", JsonUtilities.str(prSrc,  "version"));
+    newVer.addProperty("date", date);
+    newVer.addProperty("path", webpath);
+    newVer.addProperty("status", JsonUtilities.str(prSrc,  "status"));
+    newVer.addProperty("sequence", JsonUtilities.str(prSrc,  "sequence"));
+    newVer.addProperty("fhirversion", fhirVersion);
+    if (prSrc.has("desc")) {
+      newVer.addProperty("desc", JsonUtilities.str(prSrc,  "desc"));
+    }
+    if (prSrc.has("descmd")) {
+      String md = JsonUtilities.str(prSrc,  "descmd");
+      if (md.startsWith("@")) {
+        File mdFile = new File(Utilities.path(folder, md.substring(1)));
+        if (!mdFile.exists()) {
+          throw new Exception("descmd references the file "+md.substring(1)+" but it doesn't exist");
+        }
+        md = TextFile.fileToString(mdFile);
+      }
+      newVer.addProperty("descmd", md);
+    }
+    if (prSrc.has("changes")) {
+      newVer.addProperty("changes", JsonUtilities.str(prSrc,  "changes"));
     }
     if (milestone) {
-      vSrc.addProperty("current", true);
-    } else if (vSrc.has("currrent")) {
-      vSrc.remove("current");      
+      newVer.addProperty("current", true);
     }
     JsonArray oldArr = plPub.getAsJsonArray("list");
     JsonArray newArr = new JsonArray();
     newArr.add(oldArr.get(0)); // the ci-build entry
-    newArr.add(vSrc);
+    newArr.add(newVer);
     for (int i = 1; i < oldArr.size(); i++) {
       JsonObject v = (JsonObject) oldArr.get(i);
       if (milestone && v.has("current")) {
@@ -316,7 +360,7 @@ public class PublicationProcess {
     }
     plPub.remove("list");
     plPub.add("list", newArr);
-    JsonTrackingParser.write(plPub, new File(path));
+    JsonTrackingParser.write(plPub, new File(filepath));
   }
 
   private void zipFolder(File fSource, String path) throws IOException {

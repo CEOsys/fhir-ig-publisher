@@ -32,7 +32,9 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.igtools.templates.Template;
 import org.hl7.fhir.r5.conformance.ProfileUtilities;
 import org.hl7.fhir.r5.conformance.ProfileUtilities.ProfileKnowledgeProvider;
+import org.hl7.fhir.r5.context.ContextUtilities;
 import org.hl7.fhir.r5.context.IWorkerContext;
+import org.hl7.fhir.r5.elementmodel.Element;
 import org.hl7.fhir.r5.elementmodel.ParserBase;
 import org.hl7.fhir.r5.elementmodel.Property;
 import org.hl7.fhir.r5.formats.FormatUtilities;
@@ -345,7 +347,7 @@ public class IGKnowledgeProvider implements ProfileKnowledgeProvider, ParserBase
   // base specification only, only the old json style
   public void loadSpecPaths(SpecMapManager paths) throws Exception {
     this.specPaths = paths;
-    for (CanonicalResource bc : context.allConformanceResources()) {
+    for (CanonicalResource bc : context.fetchResourcesByType(CanonicalResource.class)) {
       String s = getOverride(bc.getUrl());
       if (s == null) {
         s = paths.getPath(bc.getUrl(), bc.getMeta().getSource(), bc.fhirType(), bc.getId());
@@ -428,11 +430,11 @@ public class IGKnowledgeProvider implements ProfileKnowledgeProvider, ParserBase
   
   public void checkForPath(FetchedFile f, FetchedResource r, CanonicalResource bc, boolean inner) throws FHIRException {
     if (!bc.hasUrl())
-      error(f, bc.fhirType()+".url", "Resource has no url: "+bc.getId(), I18nConstants.RESOURCE_ID_NO_URL);
+      error(f, bc.fhirType()+".url", "Resource has no url: "+bc.getId(), PublisherMessageIds.RESOURCE_ID_NO_URL);
     else if (bc.getUrl().startsWith(canonical) && !bc.getUrl().endsWith("/"+bc.getId()) && !listedURLExemptions.contains(bc.getUrl()))
-      error(f, bc.fhirType()+".url","Resource id/url mismatch: "+bc.getId()+"/"+bc.getUrl(), I18nConstants.RESOURCE_ID_MISMATCH);
+      error(f, bc.fhirType()+".url","Resource id/url mismatch: "+bc.getId()+"/"+bc.getUrl(), PublisherMessageIds.RESOURCE_ID_MISMATCH);
     if (!inner && !r.getId().equals(bc.getId()))
-      error(f, bc.fhirType()+".id", "Resource id/loaded id mismatch: "+r.getId()+"/"+bc.getUrl(), I18nConstants.RESOURCE_ID_LOADED_MISMATCH);
+      error(f, bc.fhirType()+".id", "Resource id/loaded id mismatch: "+r.getId()+"/"+bc.getUrl(), PublisherMessageIds.RESOURCE_ID_LOADED_MISMATCH);
     if (r.getConfig() == null)
       findConfiguration(f, r);
     JsonObject e = r.getConfig();
@@ -444,6 +446,7 @@ public class IGKnowledgeProvider implements ProfileKnowledgeProvider, ParserBase
       bc.setUserData("path", pathPattern.replace("[type]", r.fhirType()).replace("[id]", r.getId()));
     else
       bc.setUserData("path", r.fhirType()+"/"+r.getId()+".html");
+    r.getElement().setUserData("path", bc.getUserData("path"));
     for (Resource cont : bc.getContained()) {
       if (base != null) 
         cont.setUserData("path", doReplacements(base, r, cont, null, null, bc.getId()+"_"));
@@ -452,6 +455,20 @@ public class IGKnowledgeProvider implements ProfileKnowledgeProvider, ParserBase
       else
         cont.setUserData("path", r.fhirType()+"/"+bc.getId()+"_"+r.getId()+".html");
     }
+  }
+
+  public void checkForPath(FetchedFile f, FetchedResource r, Element res) throws FHIRException {
+    if (r.getConfig() == null)
+      findConfiguration(f, r);
+    JsonObject e = r.getConfig();
+    res.setUserData("config", e);
+    String base = getProperty(r,  "base");
+    if (base != null) 
+      res.setUserData("path", doReplacements(base, r, null, null));
+    else if (pathPattern != null)
+      res.setUserData("path", pathPattern.replace("[type]", r.fhirType()).replace("[id]", r.getId()));
+    else
+      res.setUserData("path", r.fhirType()+"/"+r.getId()+".html");
   }
 
   private void error(FetchedFile f, String path, String msg, String msgId) {
@@ -502,6 +519,11 @@ public class IGKnowledgeProvider implements ProfileKnowledgeProvider, ParserBase
   // ---- overrides ---------------------------------------------------------------------------
   
   @Override
+  public boolean isPrimitiveType(String name) {
+    StructureDefinition sd = context.fetchTypeDefinition(name);
+    return sd != null && (sd.getKind() == StructureDefinitionKind.PRIMITIVETYPE) && sd.getDerivation() == TypeDerivationRule.SPECIALIZATION;
+  }  
+
   public boolean isDatatype(String name) {
     StructureDefinition sd = context.fetchTypeDefinition(name);
     return sd != null && (sd.getKind() == StructureDefinitionKind.PRIMITIVETYPE || sd.getKind() == StructureDefinitionKind.COMPLEXTYPE) && sd.getDerivation() == TypeDerivationRule.SPECIALIZATION;
@@ -747,7 +769,7 @@ public class IGKnowledgeProvider implements ProfileKnowledgeProvider, ParserBase
   }
   @Override
   public String getLinkForUrl(String corePath, String s) {
-    return context.getLinkForUrl(corePath, s);
+    return new ContextUtilities(context).getLinkForUrl(corePath, s);
   }
 
   public Set<String> summaryRows() {

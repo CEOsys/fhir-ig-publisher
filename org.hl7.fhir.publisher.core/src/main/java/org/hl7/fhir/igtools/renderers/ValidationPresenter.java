@@ -244,10 +244,9 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
   private String packageId;
   private String altPackageId;
   private String igVersion;
-  private String ballotCheck;
   private String toolsVersion;
   private String currentToolsVersion;
-  private String versionRulesCheck;
+  private String pubReqCheck;
   private RealmBusinessRules realm;
   private PreviousVersionComparator previousVersionComparator;
   private String csAnalysis;
@@ -266,10 +265,11 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
   private DependentIGFinder dependentIgs;
   private IpaComparator ipaComparator;
   private List<StructureDefinition> modifierExtensions;
+  private String globalCheck;
   
-  public ValidationPresenter(String statedVersion, String igVersion, IGKnowledgeProvider provider, IGKnowledgeProvider altProvider, String root, String packageId, String altPackageId, String ballotCheck, 
+  public ValidationPresenter(String statedVersion, String igVersion, IGKnowledgeProvider provider, IGKnowledgeProvider altProvider, String root, String packageId, String altPackageId, 
       String toolsVersion, String currentToolsVersion, RealmBusinessRules realm, PreviousVersionComparator previousVersionComparator, IpaComparator ipaComparator,
-      String dependencies, String csAnalysis, String versionRulesCheck, String copyrightYear, IWorkerContext context,
+      String dependencies, String csAnalysis, String pubReqCheck, String globalCheck, String copyrightYear, IWorkerContext context,
       Set<String> r5Extensions, List<StructureDefinition> modifierExtensions,
       List<FetchedResource> noNarratives, List<FetchedResource> noValidation, boolean noValidate, boolean noGenerate, DependentIGFinder dependentIgs) {
     super();
@@ -280,7 +280,6 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     this.root = root;
     this.packageId = packageId;
     this.altPackageId = altPackageId;
-    this.ballotCheck = ballotCheck;
     this.realm = realm;
     this.toolsVersion = toolsVersion;
     this.currentToolsVersion = currentToolsVersion;
@@ -289,7 +288,7 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     this.dependencies = dependencies;
     this.dependentIgs = dependentIgs;
     this.csAnalysis = csAnalysis;
-    this.versionRulesCheck = versionRulesCheck;
+    this.pubReqCheck = pubReqCheck;
     this.copyrightYear = copyrightYear;
     this.context = context;
     this.noNarratives = noNarratives;
@@ -298,6 +297,7 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     this.noGenerate = noGenerate;
     this.r5Extensions = r5Extensions;
     this.modifierExtensions = modifierExtensions;
+    this.globalCheck = globalCheck;
     determineCode();
   }
 
@@ -512,7 +512,7 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
 
   private List<String> messageIdNames() {
     I18nConstants obj = new I18nConstants();
-    org.hl7.fhir.igtools.publisher.I18nConstants obj2 = new org.hl7.fhir.igtools.publisher.I18nConstants(); // not that it really matters?
+    org.hl7.fhir.igtools.publisher.PublisherMessageIds obj2 = new org.hl7.fhir.igtools.publisher.PublisherMessageIds(); // not that it really matters?
     List<String> names = new ArrayList<>();
     Field[] interfaceFields=I18nConstants.class.getFields();
     for(Field f : interfaceFields) {
@@ -524,7 +524,7 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
       } catch (Exception e) {
       }
     }
-    interfaceFields=org.hl7.fhir.igtools.publisher.I18nConstants.class.getFields();
+    interfaceFields=org.hl7.fhir.igtools.publisher.PublisherMessageIds.class.getFields();
     for(Field f : interfaceFields) {
       try {
         if (Modifier.isStatic(f.getModifiers())) {
@@ -637,11 +637,11 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
       " <tr><td>Publisher Version:</td><td>$versionCheck$</td></tr>\r\n"+
       " <tr><td>Publication Code:</td><td>$igcode$<span style=\"color: maroon; font-weight: bold\"> $igcodeerror$</span>. PackageId = $packageId$, Canonical = $canonical$</td></tr>\r\n"+
       " <tr><td>Realm Check for $realm$:</td><td><span style=\"color: maroon; font-weight: bold\">$igrealmerror$</span>$realmCheck$</td></tr>\r\n"+
-      " <tr><td>Version Check:</td><td>$versionRulesCheck$</td></tr>\r\n"+
+      " <tr><td>Publication Request:</td><td>$pubReqCheck$</td></tr>\r\n"+
       " <tr><td>Supressed Messages:</td><td>$suppressedmsgssummary$</td></tr>\r\n"+
       " <tr><td>Dependency Checks:</td><td>$dependencyCheck$</td></tr>\r\n"+
       " <tr><td>Dependent IGs:</td><td><a href=\"qa-dep.html\">$dependentIgs$</a></td></tr>\r\n"+
-      " <tr><td>Publication Rules:</td><td>Code = $igcode$. $ballotCheck$ $copyrightYearCheck$</td></tr>\r\n"+
+      " <tr><td>Global Profiles:</td><td>$globalCheck$</td></tr>\r\n"+
       " <tr><td>HTA Analysis:</td><td>$csAnalysis$</td></tr>\r\n"+
       " <tr><td>R5 Dependencies:</td><td>$r5usage$</td></tr>\r\n"+
       " <tr><td>Modifier Extensions:</td><td>$modifiers$</td></tr>\r\n"+
@@ -761,14 +761,14 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     t.add("links", Integer.toString(links));
     t.add("packageId", packageId);
     t.add("canonical", provider.getCanonical());
-    t.add("ballotCheck", ballotCheck);
     t.add("copyrightYearCheck", checkCopyRightYear());
     t.add("realmCheck", realm.checkHtml());
     t.add("igcode", igcode);
     t.add("igcodeerror", igCodeError);
     t.add("igrealmerror", igRealmError);
-    t.add("versionRulesCheck", versionRulesCheck);
+    t.add("pubReqCheck", pubReqCheck);
     t.add("realm", igrealm == null ? "n/a" : igrealm.toUpperCase());
+    t.add("globalCheck", globalCheck);
     t.add("dependencyCheck", dependencies);
     t.add("dependentIgs", dependentIgs.getCountDesc());
     t.add("csAnalysis", csAnalysis);
@@ -857,7 +857,6 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     t.add("packageId", packageId);
     t.add("canonical", provider.getCanonical());
     t.add("copyrightYearCheck", checkCopyRightYear());
-    t.add("ballotCheck", ballotCheck);
     t.add("realmCheck", realm.checkText());
     t.add("igcode", igcode);
     t.add("igcodeerror", igCodeError);
@@ -865,7 +864,7 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     t.add("realm", igrealm == null ? "n/a" : igrealm.toUpperCase());
     t.add("dependencyCheck", dependencies);
     t.add("dependentIgs", dependentIgs.getCountDesc());
-    t.add("versionRulesCheck", versionRulesCheck);
+    t.add("pubReqCheck", pubReqCheck);
     t.add("csAnalysis", csAnalysis);
     t.add("previousVersion", previousVersionComparator.checkHtml());
     t.add("ipaComparison", ipaComparator == null ? "n/a" : ipaComparator.checkHtml());

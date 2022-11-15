@@ -17,7 +17,7 @@ import org.hl7.fhir.exceptions.DefinitionException;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.exceptions.FHIRFormatError;
 import org.hl7.fhir.igtools.publisher.FetchedFile;
-import org.hl7.fhir.igtools.publisher.I18nConstants;
+import org.hl7.fhir.igtools.publisher.PublisherMessageIds;
 import org.hl7.fhir.r5.comparison.ComparisonRenderer;
 import org.hl7.fhir.r5.comparison.ComparisonSession;
 import org.hl7.fhir.r5.conformance.ProfileUtilities.ProfileKnowledgeProvider;
@@ -130,7 +130,7 @@ public class USRealmBusinessRules extends RealmBusinessRules {
         StringBuilder b = new StringBuilder();
         ValidationMessage vm = new ValidationMessage(Source.Publisher, IssueType.BUSINESSRULE, "StructureDefinition.where(url = '"+sd.getUrl()+"').baseDefinition", "US FHIR Usage rules require that all profiles on "+sd.getType()+
             (matches(usCoreProfiles, sd.getType()) > 1 ? " derive from one of the base US profiles" : " derive from the core US profile"),
-            IssueSeverity.WARNING).setMessageId(I18nConstants.US_CORE_DERIVATION); 
+            IssueSeverity.WARNING).setMessageId(PublisherMessageIds.US_CORE_DERIVATION); 
         b.append(vm.getMessage());
         f.getErrors().add(vm);
         // actually, that should be an error, but US realm doesn't have a proper base, so we're going to report the differences against the base
@@ -226,6 +226,7 @@ public class USRealmBusinessRules extends RealmBusinessRules {
       cr.getTemplates().put("Profile", new String(context.getBinaryForKey("template-comparison-Profile.html")));
       cr.getTemplates().put("CapabilityStatement", new String(context.getBinaryForKey("template-comparison-CapabilityStatement.html")));
       cr.getTemplates().put("Index", new String(context.getBinaryForKey("template-comparison-index.html")));
+      cr.setPreamble(renderProblems());
       cr.render("US Realm", "Current Build");
       System.out.println("US Core Comparisons Finished");
     } catch (Throwable e) {
@@ -233,6 +234,22 @@ public class USRealmBusinessRules extends RealmBusinessRules {
       e.printStackTrace();
     }
   }
+
+  private String renderProblems() {
+    if (problems == null || problems.isEmpty()) {
+      return "";
+    } else {
+      StringBuilder b = new StringBuilder();
+      b.append("<p>The following Profiles do not derive from US Core, and should be reviewed with the US Realm Committee:</p>\r\n");
+      b.append("<ul>\r\n");
+      for (StructureDefinition s : problems) {
+        b.append("<li><a href=\"../"+s.getUserString("path")+"\">"+s.present()+"</a></li>\r\n");
+      }
+      b.append("</ul>\r\n");
+      return b.toString();
+    }
+  }
+
 
   @Override
   public String checkHtml() {

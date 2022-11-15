@@ -44,10 +44,12 @@ public class FetchedResource {
   private boolean validateAsResource;
   private List<String> statedProfiles = new ArrayList<String>();
   private List<String> foundProfiles = new ArrayList<String>();
+  private List<String> testArtifacts = new ArrayList<String>();
   private boolean snapshotted;
   private String exampleUri;
   private HashSet<FetchedResource> statedExamples = new HashSet<FetchedResource>();
   private HashSet<FetchedResource> foundExamples = new HashSet<FetchedResource>();
+  private HashSet<FetchedResource> foundTestScripts = new HashSet<FetchedResource>();
   private ImplementationGuideDefinitionResourceComponent resEntry;
   private List<ProvenanceDetails> audits = new ArrayList<>();
   private List<ValidationMessage> errors = new ArrayList<ValidationMessage>();
@@ -67,7 +69,9 @@ public class FetchedResource {
   
   public FetchedResource setElement(Element element) {
     this.element = element;
-    type = element.fhirType();
+    if (type == null) {
+      type = element.fhirType();
+    }
     return this;
   }
 
@@ -151,7 +155,7 @@ public class FetchedResource {
   }  
 
   public boolean isExample() {
-    return (this.exampleUri != null) || (resEntry != null && resEntry.hasIsExample() && (!resEntry.getIsExample()));
+    return (this.exampleUri != null) || (resEntry != null && resEntry.hasIsExample() && (resEntry.getIsExample()));
   }  
 
   public HashSet<FetchedResource> getFoundExamples() {
@@ -218,6 +222,40 @@ public class FetchedResource {
   public void setPath(String path) {
     this.path = path;
   }
-  
+
+  public void addTestArtifact(String profile) {
+    // Check for duplicate
+    if (!testArtifacts.contains(profile)) {
+      testArtifacts.add(profile);
+    }
+  }
+	  
+  public List<String> getTestArtifacts() {
+    return testArtifacts;
+  }
+
+  public boolean hasTestArtifacts() {
+    return !testArtifacts.isEmpty();
+  }
+
+  public HashSet<FetchedResource> getFoundTestScripts() {
+    return foundTestScripts;
+  }
+
+  public void addFoundTestScript(FetchedResource r) {
+    // Check for duplicate
+    if (!foundTestScripts.contains(r)) {
+      this.foundTestScripts.add(r);
+    }
+  }
+
+  public boolean hasFoundTestScripts() {
+    return !foundTestScripts.isEmpty();
+  }
+
+  @Override
+  public String toString() {
+    return fhirType()+"/"+getId(); 
+  }
   
 }
